@@ -1,41 +1,73 @@
+import "dotenv/config"
+
 import express from "express"
 import http from "http"
-import dotenv from "dotenv"
 
-import { Server, Socket } from "socket.io"
+import { createSocketServer } from "./libs"
+import { createRoom } from "./utils"
+import { isUuid, isValidSecret } from "./helpers"
 
-dotenv.config()
+import { APP_PORT } from "./constants"
 
 const app = express()
 const httpServer = http.createServer(app)
+const socketServer = createSocketServer(httpServer)
 
-const io = new Server(httpServer, {
-	cors: {
-		origin: process.env.BASE_URL,
-		methods: ["GET", "POST"],
-	},
+process.on("unhandledRejection", (reason) => {
+	console.error("Unhandled Rejection: ", reason)
+	process.exit(1)
+})
+
+process.on("uncaughtException", (error) => {
+	console.error("Uncaught Exception: ", error)
+	process.exit(1)
 })
 
 app.use(express.json())
 
-const noop = () => {
-}
+app.post("/api/broadcast", (req, res) => {
+	const {
+		secret,
+		uuid,
+		event,
+		data,
+	} = req.body
 
-process.on("unhandledRejection", noop)
-process.on("uncaughtException", noop)
+	if (!isValidSecret(secret)) {
+		res
+			.status(401)
+			.json({ error: "Unauthorized App" })
 
-io.on("connection", (socket: Socket) => {
-	socket.on("join", (uuid) => socket.join(uuid))
+		return
+	}
 
-	socket.on("broadcast", (payload) => {
-		if (payload.secret !== process.env.SECRET_KEY) {
-			return socket.disconnect(true)
+	if (!isUuid(uuid) || !event) {
+		res
+			.status(400)
+			.json({ error: "Missing/invalid uuid or missing event" })
+
+		return
+	}
+
+	socketServer
+		.to(createRoom(uuid))
+		.emit(event, data)
+
+	res
+		.status(200)
+		.json({ success: true })
+
+	return
+})
+
+socketServer.on("connection", (socket) => {
+	socket.on("join", (uuid) => {
+		if (isUuid(uuid)) {
+			socket.join(createRoom(uuid))
 		}
-
-		io
-			.to(payload.uuid)
-			.emit(payload.event, payload.data)
 	})
 })
 
-httpServer.listen(process.env.PORT)
+httpServer.listen(APP_PORT, () => {
+	console.log(`Server running on port ${APP_PORT}`)
+})
