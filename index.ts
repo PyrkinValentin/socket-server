@@ -66,7 +66,7 @@ socketServer.on("connection", (socket) => {
 	})
 
 	socket.on("emit", ({ uuid, event, data }) => {
-		if (isUuid(uuid)) {
+		if (isUuid(uuid) && event) {
 			socket
 				.to(createRoomUuid(uuid))
 				.emit(event, data)
