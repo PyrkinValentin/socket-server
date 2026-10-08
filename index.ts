@@ -4,7 +4,7 @@ import express from "express"
 import http from "http"
 
 import { createSocketServer } from "./libs"
-import { createRoom } from "./utils"
+import { createRoomUuid } from "./utils"
 import { isUuid, isValidSecret } from "./helpers"
 
 import { APP_PORT } from "./constants"
@@ -50,20 +50,29 @@ app.post("/api/broadcast", (req, res) => {
 	}
 
 	socketServer
-		.to(createRoom(uuid))
+		.to(createRoomUuid(uuid))
 		.emit(event, data)
 
 	res
 		.status(200)
 		.json({ success: true })
-
-	return
 })
 
 socketServer.on("connection", (socket) => {
 	socket.on("join", (uuid) => {
 		if (isUuid(uuid)) {
-			socket.join(createRoom(uuid))
+			const roomUuid = createRoomUuid(uuid)
+
+			socket.join(roomUuid)
+			socket.data.roomUuid = roomUuid
+		}
+	})
+
+	socket.on("emit", ({ event, data }) => {
+		if (socket.data.roomUuid) {
+			socket
+				.to(socket.data.roomUuid)
+				.emit(event, data)
 		}
 	})
 })

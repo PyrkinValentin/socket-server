@@ -1,1 +1,1 @@
-export { createRoom } from "./createRoom"
+export { createRoomUuid } from "./createRoomUuid"

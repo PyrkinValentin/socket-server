@@ -1,6 +1,6 @@
 import type { Uuid } from "../types"
 
-export const createRoom = (uuid: Uuid) => {
+export const createRoomUuid = (uuid: Uuid) => {
 	return Array.isArray(uuid)
 		? uuid.map(String)
 		: String(uuid)
