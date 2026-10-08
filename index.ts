@@ -61,17 +61,14 @@ app.post("/api/broadcast", (req, res) => {
 socketServer.on("connection", (socket) => {
 	socket.on("join", (uuid) => {
 		if (isUuid(uuid)) {
-			const roomUuid = createRoomUuid(uuid)
-
-			socket.join(roomUuid)
-			socket.data.roomUuid = roomUuid
+			socket.join(createRoomUuid(uuid))
 		}
 	})
 
-	socket.on("emit", ({ event, data }) => {
-		if (socket.data.roomUuid) {
+	socket.on("emit", ({ uuid, event, data }) => {
+		if (isUuid(uuid)) {
 			socket
-				.to(socket.data.roomUuid)
+				.to(createRoomUuid(uuid))
 				.emit(event, data)
 		}
 	})
