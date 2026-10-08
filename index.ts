@@ -65,6 +65,20 @@ socketServer.on("connection", (socket) => {
 		}
 	})
 
+	socket.on("leave", (uuid) => {
+		if (isUuid(uuid)) {
+			const roomUuid = createRoomUuid(uuid)
+
+			if (typeof roomUuid === "string") {
+				socket.leave(roomUuid)
+
+				return
+			}
+
+			roomUuid.forEach((room) => socket.leave(room))
+		}
+	})
+
 	socket.on("emit", ({ uuid, event, data }) => {
 		if (isUuid(uuid) && event) {
 			socket
